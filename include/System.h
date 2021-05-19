@@ -1,73 +1,64 @@
 /**
-* This file is part of ORB-SLAM3
-*
-* Copyright (C) 2017-2020 Carlos Campos, Richard Elvira, Juan J. Gómez Rodríguez, José M.M. Montiel and Juan D. Tardós, University of Zaragoza.
-* Copyright (C) 2014-2016 Raúl Mur-Artal, José M.M. Montiel and Juan D. Tardós, University of Zaragoza.
-*
-* ORB-SLAM3 is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
-* License as published by the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* ORB-SLAM3 is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
-* the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with ORB-SLAM3.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
+ * This file is part of ORB-SLAM3
+ *
+ * Copyright (C) 2017-2020 Carlos Campos, Richard Elvira, Juan J. Gómez Rodríguez, José M.M. Montiel and Juan D. Tardós,
+ * University of Zaragoza. Copyright (C) 2014-2016 Raúl Mur-Artal, José M.M. Montiel and Juan D. Tardós, University of
+ * Zaragoza.
+ *
+ * ORB-SLAM3 is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
+ * License as published by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ORB-SLAM3 is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
+ * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with ORB-SLAM3.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef SYSTEM_H
 #define SYSTEM_H
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
-#include<stdio.h>
-#include<stdlib.h>
-#include<string>
-#include<thread>
-#include<opencv2/core/core.hpp>
+#include <opencv2/core/core.hpp>
+#include <string>
+#include <thread>
 
-#include "Tracking.h"
-#include "FrameDrawer.h"
-#include "MapDrawer.h"
 #include "Atlas.h"
+#include "Config.h"
+#include "FrameDrawer.h"
+#include "ImuTypes.h"
+#include "KeyFrameDatabase.h"
 #include "LocalMapping.h"
 #include "LoopClosing.h"
-#include "KeyFrameDatabase.h"
+#include "MapDrawer.h"
 #include "ORBVocabulary.h"
+#include "Tracking.h"
 #include "Viewer.h"
-#include "ImuTypes.h"
-#include "Config.h"
 
+namespace ORB_SLAM3 {
 
-namespace ORB_SLAM3
-{
-
-class Verbose
-{
-public:
-    enum eLevel
-    {
-        VERBOSITY_QUIET=0,
-        VERBOSITY_NORMAL=1,
-        VERBOSITY_VERBOSE=2,
-        VERBOSITY_VERY_VERBOSE=3,
-        VERBOSITY_DEBUG=4
+class Verbose {
+  public:
+    enum eLevel {
+        VERBOSITY_QUIET = 0,
+        VERBOSITY_NORMAL = 1,
+        VERBOSITY_VERBOSE = 2,
+        VERBOSITY_VERY_VERBOSE = 3,
+        VERBOSITY_DEBUG = 4
     };
 
     static eLevel th;
 
-public:
-    static void PrintMess(std::string str, eLevel lev)
-    {
-        if(lev <= th)
-            cout << str << endl;
+  public:
+    static void PrintMess(std::string str, eLevel lev) {
+        if (lev <= th) cout << str << endl;
     }
 
-    static void SetTh(eLevel _th)
-    {
-        th = _th;
-    }
+    static void SetTh(eLevel _th) { th = _th; }
 };
 
 class Viewer;
@@ -77,45 +68,40 @@ class Tracking;
 class LocalMapping;
 class LoopClosing;
 
-class System
-{
-public:
+class System {
+  public:
     // Input sensor
-    enum eSensor{
-        MONOCULAR=0,
-        STEREO=1,
-        RGBD=2,
-        IMU_MONOCULAR=3,
-        IMU_STEREO=4
-    };
+    enum eSensor { MONOCULAR = 0, STEREO = 1, RGBD = 2, IMU_MONOCULAR = 3, IMU_STEREO = 4 };
 
     // File type
-    enum eFileType{
-        TEXT_FILE=0,
-        BINARY_FILE=1,
+    enum eFileType {
+        TEXT_FILE = 0,
+        BINARY_FILE = 1,
     };
 
-public:
-
+  public:
     // Initialize the SLAM system. It launches the Local Mapping, Loop Closing and Viewer threads.
-    System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true, const int initFr = 0, const string &strSequence = std::string(), const string &strLoadingFile = std::string());
+    System(const string& strVocFile, const string& strSettingsFile, const eSensor sensor, const bool bUseViewer = true,
+           const int initFr = 0, const string& strSequence = std::string(),
+           const string& strLoadingFile = std::string());
 
     // Proccess the given stereo frame. Images must be synchronized and rectified.
     // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
     // Returns the camera pose (empty if tracking fails).
-    cv::Mat TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timestamp, const vector<IMU::Point>& vImuMeas = vector<IMU::Point>(), string filename="");
+    cv::Mat TrackStereo(const cv::Mat& imLeft, const cv::Mat& imRight, const double& timestamp,
+                        const vector<IMU::Point>& vImuMeas = vector<IMU::Point>(), string filename = "");
 
     // Process the given rgbd frame. Depthmap must be registered to the RGB frame.
     // Input image: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
     // Input depthmap: Float (CV_32F).
     // Returns the camera pose (empty if tracking fails).
-    cv::Mat TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const double &timestamp, string filename="");
+    cv::Mat TrackRGBD(const cv::Mat& im, const cv::Mat& depthmap, const double& timestamp, string filename = "");
 
     // Proccess the given monocular frame and optionally imu data
     // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
     // Returns the camera pose (empty if tracking fails).
-    cv::Mat TrackMonocular(const cv::Mat &im, const double &timestamp, const vector<IMU::Point>& vImuMeas = vector<IMU::Point>(), string filename="");
-
+    cv::Mat TrackMonocular(const cv::Mat& im, const double& timestamp,
+                           const vector<IMU::Point>& vImuMeas = vector<IMU::Point>(), string filename = "");
 
     // This stops local mapping thread (map building) and performs only camera tracking.
     void ActivateLocalizationMode();
@@ -139,22 +125,22 @@ public:
     // Only for stereo and RGB-D. This method does not work for monocular.
     // Call first Shutdown()
     // See format details at: http://vision.in.tum.de/data/datasets/rgbd-dataset
-    void SaveTrajectoryTUM(const string &filename);
+    void SaveTrajectoryTUM(const string& filename);
 
     // Save keyframe poses in the TUM RGB-D dataset format.
     // This method works for all sensor input.
     // Call first Shutdown()
     // See format details at: http://vision.in.tum.de/data/datasets/rgbd-dataset
-    void SaveKeyFrameTrajectoryTUM(const string &filename);
+    void SaveKeyFrameTrajectoryTUM(const string& filename);
 
-    void SaveTrajectoryEuRoC(const string &filename);
-    void SaveKeyFrameTrajectoryEuRoC(const string &filename);
+    void SaveTrajectoryEuRoC(const string& filename);
+    void SaveKeyFrameTrajectoryEuRoC(const string& filename);
 
     // Save camera trajectory in the KITTI dataset format.
     // Only for stereo and RGB-D. This method does not work for monocular.
     // Call first Shutdown()
     // See format details at: http://www.cvlibs.net/datasets/kitti/eval_odometry.php
-    void SaveTrajectoryKITTI(const string &filename);
+    void SaveTrajectoryKITTI(const string& filename);
 
     // TODO: Save/Load functions
     // SaveMap(const string &filename);
@@ -179,8 +165,7 @@ public:
     void InsertTrackTime(double& time);
 #endif
 
-private:
-
+  private:
     // Input sensor
     eSensor mSensor;
 
@@ -234,6 +219,6 @@ private:
     std::mutex mMutexState;
 };
 
-}// namespace ORB_SLAM
+}  // namespace ORB_SLAM3
 
-#endif // SYSTEM_H
+#endif  // SYSTEM_H
